@@ -140,3 +140,13 @@ void init(int argc, char *argv[]) {
 void finalize() {
   MPI_Finalize();
 }
+
+void printM(mat M) {
+  int i,j;
+  for(i=0;i<M.n;i=i+1) {
+    for(j=0;j<M.n;j=j+1) {
+      printf("%e\n", M.M[j][i]);
+    }
+  }
+  exit(0);
+}

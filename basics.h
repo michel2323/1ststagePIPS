@@ -39,4 +39,5 @@ mat copyM(mat a);
 void printtimes(double fact, double solv);
 void init(int argc, char *argv[]);
 void finalize();
+void printM(mat M);
 #endif
