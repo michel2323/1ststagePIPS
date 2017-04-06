@@ -17,6 +17,7 @@
 
 typedef struct mat {
   double **M;
+  int m;
   int n;
   
 } mat;

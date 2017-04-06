@@ -4,19 +4,21 @@ mat openM() {
   mat ret;
   int i=0;
   FILE *fp=fopen("./1ststageM.dmp","r");  
+  if(fread(&ret.m, sizeof(int), 1, fp)==0) {
+    printf("Error reading size m in 1ststageM.dmp %d\n", ret.m);
+    exit(0);
+  }
   if(fread(&ret.n, sizeof(int), 1, fp)==0) {
     printf("Error reading size n in 1ststageM.dmp %d\n", ret.n);
     exit(0);
   }
-  else {
-    printf("Matrix M is of size %dx%d.\n", ret.n, ret.n);
-  }
-  ret.M=(double**) malloc(sizeof(double*)*ret.n);
-  ret.M[0]=(double*) malloc(sizeof(double)*ret.n*ret.n);
-  for(i=1;i<ret.n;i=i+1) {
+  printf("Matrix M is of size %dx%d.\n", ret.m, ret.n);
+  ret.M=(double**) malloc(sizeof(double*)*ret.m);
+  ret.M[0]=(double*) malloc(sizeof(double)*ret.m*ret.n);
+  for(i=1;i<ret.m;i=i+1) {
     ret.M[i]=ret.M[0]+ret.n*i;
   }
-  for(i=0;i<ret.n;i=i+1) {
+  for(i=0;i<ret.m;i=i+1) {
     if(fread(ret.M[i], sizeof(double), ret.n, fp)==0) {
       printf("Error reading data in 1ststageM.dmp\n");
     }
@@ -31,6 +33,7 @@ void closeM(mat M) {
 
 vec openSol() {
   vec ret;
+  int tmp;
   FILE *fp=fopen("./1ststageSol.dmp","r");  
   if(fread(&ret.n, sizeof(int), 1, fp)==0) {
     printf("Error reading size n in 1ststageSol.dmp %d\n", ret.n);
@@ -39,6 +42,7 @@ vec openSol() {
   else {
     printf("Vector Sol is of size %d.\n", ret.n);
   }
+  fread(&tmp, sizeof(int), 1, fp);
   ret.v=(double*) malloc(sizeof(double)*ret.n);
   if(fread(ret.v, sizeof(double), ret.n, fp)==0) {
       printf("Error reading data in 1ststageSol.dmp\n");
@@ -54,6 +58,7 @@ void closeSol(vec v) {
 
 vec openRHS() {
   vec ret;
+  int tmp;
   FILE *fp=fopen("./1ststageRHS.dmp","r");  
   if(fread(&ret.n, sizeof(int), 1, fp)==0) {
     printf("Error reading size n in 1ststageRHS.dmp %d\n", ret.n);
@@ -62,6 +67,7 @@ vec openRHS() {
   else {
     printf("Vector RHS is of size %d.\n", ret.n);
   }
+  fread(&tmp, sizeof(int), 1, fp);
   ret.v=(double*) malloc(sizeof(double)*ret.n);
   if(fread(ret.v, sizeof(double), ret.n, fp)==0) {
       printf("Error reading data in 1ststageRHS.dmp\n");
