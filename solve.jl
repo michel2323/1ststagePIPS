@@ -6,7 +6,7 @@ function openMat(filename)
   n=read(fp, Int32)
   A=read(fp, Float64, m, n)
   close(fp)
-  println(m,n)
+  println(filename," ", m," ",n)
   return A
 end
 
@@ -33,28 +33,35 @@ function firststage()
   println("Condition number: ", cond(A))
 end
 
-function globalmat()
-  A=openMat("globalA0.dmp")
-  spy(A)
+function buildMaster()
+  Q=openMat("globalQ00_1.dmp")
+  spy(Q)
   show()
-  A=openMat("globalA1.dmp")
-  spy(A)
+  B=openMat("globalB00_1.dmp")
+  spy(B)
   show()
-  C=openMat("globalC0.dmp")
-  spy(C)
+  C=openMat("globalC00_1.dmp")
+  spy(B)
   show()
-  C=openMat("globalC1.dmp")
-  spy(C)
+end
+function buildW(child)
+  filename="globalQs" * "$child" * "_1.dmp"
+  println(filename)
+  Q=openMat(filename)
+  spy(Q)
   show()
-  R=openMat("globalR0.dmp")
-  spy(R)
+  filename="globalBs" * "$child" * "_1.dmp"
+  B=openMat(filename)
+  spy(B)
   show()
-  R=openMat("globalR1.dmp")
-  spy(R)
+  filename="globalDs" * "$child" * "_1.dmp"
+  D=openMat(filename)
+  spy(D)
   show()
 end
 
 ioff()
 #firststage()
-globalmat()
+#M=buildMaster()
+W=buildW(0)
 
