@@ -5,7 +5,7 @@ include makefile.inc
 all: dsytr dgetr pdgetr elemental
 	
 elemental: elemental.o basics.o	
-	$(CXX) -o $@ $^ -L$(ELEMENTAL_PATH)/lib -lEl -lpmrrr -lElSuiteSparse -lparmetis -lmetis $(LFLAGS) 
+	$(CXX) -o $@ $^ -L$(ELEMENTAL_PATH)/lib -lEl -lpmrrr -lElSuiteSparse -lparmetis -lmetis $(LFLAGS) # -Wl,-rpath=$(ELEMENTAL_PATH)/lib 
 	
 dsytr: dsytr.o basics.o	
 	$(CC) -o $@ $^ $(LLAPACK) $(LFLAGS) 

@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   FNAME(dgetrs)( &trans, &M.n, &one,	M.M[0],	&M.n, ipiv, Sol.v,	&M.n,	&info);
   double t3=MPI_Wtime();
   diff(Mold, Sol, RHS);
-  printtimes(t3-t2,t1-t2);
+  printtimes(t1-t0,t3-t2);
   
   closeSol(Sol);
   closeRHS(RHS);

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <assert.h>
 #include <mpi.h>
+#include <time.h>
 
 #ifndef FNAME
 #ifndef __bg__

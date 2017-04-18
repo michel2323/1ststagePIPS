@@ -41,19 +41,21 @@ int main(int argc, char *argv[]) {
   diff(M, Sol, RHS);
   mat Mold=copyM(M);
   ipiv=(int*) calloc(M.n,sizeof(int));  
+  double t0=MPI_Wtime();
   FNAME(dsytrf)( &fortranUplo, &M.n, M.M[0], &M.n, ipiv, &lworkNew, &lwork, &info );
+  double t1=MPI_Wtime();
   lwork = (int)lworkNew; 
   work = malloc(sizeof(double)*lwork);  
-  double t0=MPI_Wtime();
+  double t2=MPI_Wtime();
   FNAME(dsytrf)( &fortranUplo, &M.n, M.M[0], &M.n, ipiv, work, &lwork, &info );
-  double t1=MPI_Wtime();
+  double t3=MPI_Wtime();
   free(work);
   assign(Sol,RHS);
-  double t2=MPI_Wtime();
+  double t4=MPI_Wtime();
   FNAME(dsytrs)( &fortranUplo, &M.n, &one,	M.M[0],	&M.n, ipiv, Sol.v,	&M.n,	&info);
-  double t3=MPI_Wtime();
+  double t5=MPI_Wtime();
   diff(Mold, Sol, RHS);
-  printtimes(t3-t2,t1-t2);
+  printtimes(t3-t2,t5-t4);
   
   closeSol(Sol);
   closeRHS(RHS);

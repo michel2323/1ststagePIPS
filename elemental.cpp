@@ -9,16 +9,21 @@ int main (int argc, char *argv[]) {
   const std::string filenameA = "1ststageM.dmp";
   const std::string filenameB = "1ststageRHS.dmp";
   const std::string filenameS = "1ststageSol.dmp";
-  El::Read( A, filenameA, El::BINARY);
-  El::Read( B, filenameB, El::BINARY);
-  El::Read( S, filenameS, El::BINARY);
+  El::Read( A, filenameA, El::BINARY, false);
+  El::Read( B, filenameB, El::BINARY, false);
+  El::Read( S, filenameS, El::BINARY, false);
   El::Output("Size: ",A.Height(),"x",A.Width());
   El::DistPermutation P;
   El::Timer timer;
+ // El::Output("Condition number: ", El::TwoCondition(A));
   timer.Start();
   El::LU( A, P );
   El::Output("Factorized in ", timer.Stop()," [sec]");
+  timer.Start();
   El::lu::SolveAfter(El::OrientationNS::NORMAL, A, P, B);
-  B-=S;
+  El::Output("Solved in ", timer.Stop()," [sec]");
+  El::DistMatrix<double> S_T(1,1);
+  El::Transpose(S,S_T);
+  B-=S_T;
   El::Output("Difference to stored solution: ", El::FrobeniusNorm(B));
 }

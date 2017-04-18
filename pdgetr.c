@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "mpi.h"
 #include <sys/time.h>
+#include <time.h>
 #include "basics.h"
 
 static int max( int a, int b ){
@@ -70,7 +71,11 @@ int main(int argc, char **argv) {
    mat M=openM();
 	 vec RHS=openRHS();
 	 vec Sol=openSol();
-   n = M.n; nrhs = 1; nprow = 2; npcol = 1; nb = 64;
+   
+   int ngrid=atoi(argv[1]);
+   
+   n = M.n; nrhs = 1; nprow = ngrid; npcol = ngrid; nb = atoi(argv[3]);
+   n=atoi(argv[2]);
 /**/
    if (nb>n)
       nb = n;
@@ -113,7 +118,8 @@ int main(int argc, char **argv) {
 *
 */ 
 
-      //seed = iam*n*(n+nrhs); srand(seed);
+      //seed = iam*n*(n+nrhs); 
+      srand(time(NULL));
 /**/      
       A = (double *)calloc(np*nq,sizeof(double)) ;
       if (A==NULL){ printf("error of memory allocation A on proc %dx%d\n",myrow,mycol); exit(0); }
@@ -136,31 +142,32 @@ int main(int argc, char **argv) {
       k = 0;
 			int q=0;
 			int r=0;
-			int counter=0;
       for (i = 0; i < np; i++) {
-         for (j = 0; j < nq; j++) {
-            //A[k] = ((double) rand()) / ((double) RAND_MAX) - 0.5 ;
-						q=np_+i;
-						r=nq_+j;
-						A[k]=M.M[q][r];
-						/*if(r==q) { 
-							A[k]=1;
-							counter++;
-						}
-						else A[k]=0;*/
-						//printf("%e", A[k]);
-            k++;   
-         }
-				 //printf("\n");
+        for (j = 0; j < nq; j++) {
+          A[k] = ((double) rand()) / ((double) RAND_MAX) - 0.5 ;
+          // A[k]=(double) (k+2)*(k+1);
+          q=np_+i;
+          r=nq_+j;
+          //A[k]=M.M[q][r];
+          /*if(r==q) { 
+          A[k]=1;
+          counter++;
+          }
+          else A[k]=0;*/
+          // printf("%e ", A[k]);
+          k++;   
+        }
+        printf("\n");
       }
-			//MPI_Allreduce(MPI_IN_PLACE,&counter,1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-			printf("counter: %d\n", counter);
+			MPI_Allreduce(MPI_IN_PLACE,&k,1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      if(myrank_mpi==0) printf("counter: %d\n", k);
       k = 0;
       for (i = 0; i < np; i++) {
          for (j = 0; j < nqrhs; j++) {
-            //B[k] = ((double) rand()) / ((double) RAND_MAX) - 0.5 ;
+              B[k] = ((double) rand()) / ((double) RAND_MAX) - 0.5 ;
+            //B[k]=(double) k*(k+1);
 						//B[k]=RHS.v[np_+i];
-						B[k]=1.0;
+						//B[k]=1.0;
             k++;   
          }
       }
@@ -171,7 +178,18 @@ int main(int argc, char **argv) {
 */ 
       itemp = max( 1, np );
       descinit_( descA, &n, &n   , &nb, &nb, &izero, &izero, &ictxt, &itemp, &info );
-      descinit_( descB, &n, &nrhs, &nb, &nb, &izero, &izero, &ictxt, &itemp, &info );
+      if( iam==0 ) {
+         printf("                                               \n");
+         printf("\tINFO code returned by DESCINIT A = %d              \n",info);
+         printf("                                               \n");
+      }
+      // descinit_( descB, &n, &nrhs, &nb, &nb, &izero, &izero, &ictxt, &itemp, &info );
+      descinit_( descB, &n, &nrhs, &nb, &ione, &izero, &izero, &ictxt, &itemp, &info );
+      if( iam==0 ) {
+         printf("                                               \n");
+         printf("\tINFO code returned by DESCINIT B = %d              \n",info);
+         printf("                                               \n");
+      }
 /*
 *
 *     Make a copy of A and the rhs for checking purposes

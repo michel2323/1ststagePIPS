@@ -33,16 +33,20 @@ void closeM(mat M) {
 
 vec openSol() {
   vec ret;
-  int tmp;
+  int m,n;
   FILE *fp=fopen("./1ststageSol.dmp","r");  
-  if(fread(&ret.n, sizeof(int), 1, fp)==0) {
-    printf("Error reading size n in 1ststageSol.dmp %d\n", ret.n);
+  if(fread(&m, sizeof(int), 1, fp)==0) {
+    printf("Error reading size m in 1ststageSol.dmp %d\n", m);
+    exit(0);
+  }
+  if(fread(&n, sizeof(int), 1, fp)==0) {
+    printf("Error reading size n in 1ststageSol.dmp %d\n", n);
     exit(0);
   }
   else {
-    printf("Vector Sol is of size %d.\n", ret.n);
+    printf("Vector Sol is of size %dx%d.\n", m,n);
   }
-  fread(&tmp, sizeof(int), 1, fp);
+  ret.n=n;
   ret.v=(double*) malloc(sizeof(double)*ret.n);
   if(fread(ret.v, sizeof(double), ret.n, fp)==0) {
       printf("Error reading data in 1ststageSol.dmp\n");
@@ -58,16 +62,20 @@ void closeSol(vec v) {
 
 vec openRHS() {
   vec ret;
-  int tmp;
+  int m,n;
   FILE *fp=fopen("./1ststageRHS.dmp","r");  
-  if(fread(&ret.n, sizeof(int), 1, fp)==0) {
-    printf("Error reading size n in 1ststageRHS.dmp %d\n", ret.n);
+  if(fread(&m, sizeof(int), 1, fp)==0) {
+    printf("Error reading size m in 1ststageRHS.dmp %d\n", m);
+    exit(0);
+  }
+  if(fread(&n, sizeof(int), 1, fp)==0) {
+    printf("Error reading size n in 1ststageRHS.dmp %d\n", n);
     exit(0);
   }
   else {
-    printf("Vector RHS is of size %d.\n", ret.n);
+    printf("Vector Sol is of size %dx%d.\n", m,n);
   }
-  fread(&tmp, sizeof(int), 1, fp);
+  ret.n=m;
   ret.v=(double*) malloc(sizeof(double)*ret.n);
   if(fread(ret.v, sizeof(double), ret.n, fp)==0) {
       printf("Error reading data in 1ststageRHS.dmp\n");
@@ -135,8 +143,8 @@ mat copyM(mat A) {
 }
 
 void printtimes(double fact, double solv) {
-  printf("Factorization: %f.\n", fact);
-  printf("Solve: %f.\n", fact);
+  printf("Factorization: %lf.\n", fact);
+  printf("Solve: %lf.\n", solv);
 }
 
 void init(int argc, char *argv[]) {
@@ -156,3 +164,4 @@ void printM(mat M) {
   }
   exit(0);
 }
+
