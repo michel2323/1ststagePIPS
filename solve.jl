@@ -302,6 +302,7 @@ end
 spy(A)
 show()
 
+println("Condition number: ", cond(A))
 RHS=readRHS(iter)
 SOL=readSOL(iter)
 println("Solving system")
@@ -311,6 +312,9 @@ println("Solution from file:")
 println(norm(SOL))
 println("Computed solution:")
 println(norm(x))
+println("RHS from file:")
+println(norm(RHS))
+println("Computed RHS:")
+println(norm(A*x))
 
-println("Condition number: ", cond(A))
 
