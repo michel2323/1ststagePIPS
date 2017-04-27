@@ -49,9 +49,39 @@ function buildM(iter)
   filename="globalKKT" * "$child" * "_" * "$iter" * ".dmp"
   W0=openMat(filename)
   return W0
-  
 end
 function buildW(child,iter)
+  filename="globalWs" * "$child" * "_" * "$iter" * ".dmp"
+  W=openMat(filename)
+  
+# Now offdiagonal matrices
+  
+  filename="globalRs" * "$child" * "_" * "$iter" * ".dmp"
+  R=openMat(filename)
+  filename="globalAs" * "$child" * "_" * "$iter" * ".dmp"
+  A=openMat(filename)
+  filename="globalCs" * "$child" * "_" * "$iter" * ".dmp"
+  C=openMat(filename)
+  
+  @assert(size(R,2)==size(A,2))
+  @assert(size(R,2)==size(C,2))
+  # @assert(size(R,1)==size(Q,2))
+  # @assert(size(A,1)==size(B,1))
+  # @assert(size(C,1)==size(D,1))
+  # O=zeros(size(R,2),size(R,1)+size(Ds,1)+size(A,1)+size(C,1))
+  O=zeros(size(R,2),size(W,2))
+  sDs=size(W,2)-(size(R,1)+size(A,1)+size(C,1))
+  println(size(W,2),"-",size(R,1)+size(A,1)+size(C,1),"=",sDs)
+  
+  O[1:size(R,2),1:size(R,1)]=transpose(R)
+  O[1:size(R,2),1+size(R,1)+sDs:size(R,1)+sDs+size(A,1)]=transpose(A)
+  O[1:size(R,2),1+size(R,1)+sDs+size(A,1):size(R,1)+sDs+size(A,1)+size(C,1)]=transpose(C)
+
+  @assert(size(W,2)==size(O,2))
+  
+  return W,O
+end
+function buildW2(child,iter)
   # reading in block
   filename="globalQs" * "$child" * "_" * "$iter" * ".dmp"
   Q=openMat(filename)
@@ -182,7 +212,7 @@ function readSOL(iter)
 end
 
 ioff()
-iter=1
+iter=28
 scenarios=2
 M=buildM(iter)
 W,O=buildW(0,iter)
