@@ -44,13 +44,111 @@ function buildMaster()
   spy(B)
   show()
 end
-function buildM(iter)
+function buildM2(iter)
   child=0
   filename="globalKKT" * "$child" * "_" * "$iter" * ".dmp"
   W0=openMat(filename)
   return W0
 end
-function buildW(child,iter)
+function buildM(iter)
+  # reading in block
+ child=0
+  filename="globalQ0" * "$child" * "_" * "$iter" * ".dmp"
+  println(filename)
+  Q=openMat(filename)
+  filename="globalB0" * "$child" * "_" * "$iter" * ".dmp"
+  B=openMat(filename)
+  filename="globalDss0" * "$child" * "_" * "$iter" * ".dmp"
+  Ds=openMat(filename)
+  filename="globalDsx0" * "$child" * "_" * "$iter" * ".dmp"
+  Dx=openMat(filename)
+  filename="globalDsy0" * "$child" * "_" * "$iter" * ".dmp"
+  Dy=openMat(filename)
+  filename="globalDsz0" * "$child" * "_" * "$iter" * ".dmp"
+  Dz=openMat(filename)
+  filename="globalD0" * "$child" * "_" * "$iter" * ".dmp"
+  D=openMat(filename)
+  
+  # computing block size
+  @assert(size(Q,1)==size(B,2))
+  @assert(size(Q,1)==size(D,2))
+  @assert(size(B,1)==size(Dy,1))
+  @assert(size(D,1)==size(Dz,1))
+  n=size(Q,1)+size(Ds,1)+size(B,1)+size(D,1)
+  println(n)
+  W=zeros(n,n)
+  
+  # move blocks to the right places
+  # Read Dx
+  # Dsx
+  T=zeros(size(Dx,1),size(Dx,1))
+  for i=1:size(Dx,1)
+    T[i,i]=Dx[i,1]
+  end
+  
+  # Compute \bar{Q}=Q*Dx
+  Q=Q+T
+  # start with Qs
+  W[1:size(Q,1),1:size(Q,2)]=Q
+  
+  # Bs
+  W[1+size(Q,1)+size(Ds,1):size(Q,1)+size(Ds,1)+size(B,1),1:size(B,2)]=B
+  # transpose symmetric
+  W[1:size(B,2),1+size(Q,1)+size(Ds,1):size(Q,1)+size(Ds,1)+size(B,1)]=transpose(B)
+  
+  # Ds
+  W[1+size(Q,1)+size(Ds,1)+size(B,1):size(Q,1)+size(Ds,1)+size(B,1)+size(D,1),1:size(D,2)]=D
+  # transpose symmetric
+  W[1:size(D,2),1+size(Q,1)+size(Ds,1)+size(B,1):size(Q,1)+size(Ds,1)+size(B,1)+size(D,1)]=transpose(D)
+  
+  # All the diagonals D
+  
+  # Dss
+  fromy=size(Q,1)+1
+  toy=size(Q,1)+size(Ds,1)
+  fromx=size(Q,2)+1
+  tox=size(Q,2)+size(Ds,1)
+  for i=1:size(Ds,1)-1
+    W[fromy+i,fromx+i]=Ds[i,1]
+  end
+  
+  # Dsy
+  fromy=size(Q,1)+size(Ds,1)+1
+  toy=size(Q,1)+size(Dy,1)+size(Ds,1)
+  fromx=size(Q,2)+size(Ds,1)+1
+  tox=size(Q,2)+size(Dy,1)+size(Ds,1)
+  for i=1:size(Dy,1)-1
+    W[fromy+i,fromx+i]=Dy[i,1]
+  end
+  
+  # Dsz
+  fromy=size(Q,1)+size(Dy,1)+size(Ds,1)+1
+  toy=size(Q,1)+size(Dz,1)+size(Dy,1)+size(Ds,1)
+  fromx=size(Q,2)+size(Dy,1)+size(Ds,1)+1
+  tox=size(Q,2)+size(Dz,1)+size(Dy,1)+size(Ds,1)
+  for i=1:size(Dz,1)-1
+    W[fromy+i,fromx+i]=Dz[i,1]
+  end
+  
+  # Identity matrix entries
+  id1=eye(size(D,1),size(Ds,1))
+  id2=eye(size(Ds,1),size(D,1))
+  
+  fromy=1+size(Q,1)+size(Ds,1)+size(B,1)
+  toy=size(Q,1)+size(Ds,1)+size(B,1)+size(D,1)
+  fromx=1+size(Q,1)
+  tox=size(Q,1)+size(Ds,1)
+  W[fromy:toy,fromx:tox]=-id1
+  
+  fromy=1+size(Q,1)+size(Ds,1)+size(B,1)
+  toy=size(Q,1)+size(Ds,1)+size(B,1)+size(D,1)
+  fromx=1+size(Q,1)
+  tox=size(Q,1)+size(Ds,1)
+  W[fromx:tox,fromy:toy]=-id2
+  
+  return W
+end
+function buildW2(child,iter)
   filename="globalWs" * "$child" * "_" * "$iter" * ".dmp"
   W=openMat(filename)
   
@@ -81,7 +179,7 @@ function buildW(child,iter)
   
   return W,O
 end
-function buildW2(child,iter)
+function buildW(child,iter)
   # reading in block
   filename="globalQs" * "$child" * "_" * "$iter" * ".dmp"
   Q=openMat(filename)
@@ -115,7 +213,7 @@ function buildW2(child,iter)
   end
   
   # Compute \bar{Q}=Q*Dx
-  Q=Q*T
+  Q=Q+T
   # start with Qs
   W[1:size(Q,1),1:size(Q,2)]=Q
   
@@ -212,8 +310,8 @@ function readSOL(iter)
 end
 
 ioff()
-iter=28
-scenarios=2
+iter=1
+scenarios=4
 M=buildM(iter)
 W,O=buildW(0,iter)
 A=zeros(size(M,1)+scenarios*size(W,1),size(M,2)+scenarios*size(W,2))
