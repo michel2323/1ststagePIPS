@@ -44,13 +44,13 @@ function buildMaster()
   spy(B)
   show()
 end
-function buildM2(iter)
+function buildM(iter)
   child=0
   filename="globalKKT" * "$child" * "_" * "$iter" * ".dmp"
   W0=openMat(filename)
   return W0
 end
-function buildM(iter)
+function buildM2(iter)
   # reading in block
  child=0
   filename="globalQ0" * "$child" * "_" * "$iter" * ".dmp"
@@ -148,7 +148,7 @@ function buildM(iter)
   
   return W
 end
-function buildW2(child,iter)
+function buildW(child,iter)
   filename="globalWs" * "$child" * "_" * "$iter" * ".dmp"
   W=openMat(filename)
   
@@ -169,7 +169,6 @@ function buildW2(child,iter)
   # O=zeros(size(R,2),size(R,1)+size(Ds,1)+size(A,1)+size(C,1))
   O=zeros(size(R,2),size(W,2))
   sDs=size(W,2)-(size(R,1)+size(A,1)+size(C,1))
-  println(size(W,2),"-",size(R,1)+size(A,1)+size(C,1),"=",sDs)
   
   O[1:size(R,2),1:size(R,1)]=transpose(R)
   O[1:size(R,2),1+size(R,1)+sDs:size(R,1)+sDs+size(A,1)]=transpose(A)
@@ -179,7 +178,7 @@ function buildW2(child,iter)
   
   return W,O
 end
-function buildW(child,iter)
+function buildW2(child,iter)
   # reading in block
   filename="globalQs" * "$child" * "_" * "$iter" * ".dmp"
   Q=openMat(filename)
@@ -311,9 +310,38 @@ end
 
 ioff()
 iter=1
-scenarios=4
-M=buildM(iter)
-W,O=buildW(0,iter)
+if (size(ARGS,1) < 4)
+  println("Not enough arguments.")
+  println("Usage: solve.jl [#scenarios] [iteration] [assemble master] [assemble scenarios]")
+  exit()
+end
+scenarios=parse(Int32,ARGS[1])
+iter=parse(Int32,ARGS[2])
+massemble=parse(Int32,ARGS[3])
+sassemble=parse(Int32,ARGS[4])
+if (massemble==0)
+  M=buildM(iter)
+else
+  M=buildM2(iter)
+end
+if (!issym(M))
+  println("M is not symmetric")
+  exit()
+else
+  println("M is symmetric")
+end
+
+if (sassemble==0)
+  W,O=buildW(0,iter)
+else
+  W,O=buildW2(0,iter)
+end
+if (!issym(W))
+  println("W is not symmetric")
+  exit()
+else
+  println("W is symmetric")
+end
 A=zeros(size(M,1)+scenarios*size(W,1),size(M,2)+scenarios*size(W,2))
 
 A[1+scenarios*size(W,1):size(M,1)+scenarios*size(W,1),1+scenarios*size(W,2):size(M,2)+scenarios*size(W,2)]=M
@@ -321,12 +349,23 @@ A[1:size(W,1),1:size(W,2)]=W
 A[1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1),1:size(O,2)]=O
 A[1:size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
 
+if (!issym(A))
+  println("A is not symmetric 1")
+  exit()
+end
+
 for i=1:scenarios-1
   W,O=buildW(1,iter)
   A[1+i*size(W,1):(i+1)*size(W,1),1+i*size(W,2):(i+1)*size(W,2)]=W
   A[1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1),1+i*size(O,2):(i+1)*size(O,2)]=O
   A[1+i*size(O,2):(i+1)*size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
 end
+# A[10:10]=10
+if (!issym(A))
+  println("A is not symmetric 2")
+  exit()
+end
+# exit()
 spy(A)
 show()
 RHS=readRHS(iter)
