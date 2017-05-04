@@ -1,5 +1,9 @@
 using PyPlot
 
+
+# Read dumped matrix
+# Format is m, n integers setting the sizeof
+# and m*n entries
 function openMat(filename)
   fp=open(filename)
   m=read(fp, Int32)
@@ -10,21 +14,24 @@ function openMat(filename)
   return A
 end
 
+# Read first stage matrix and compute solution
 function firststage()
   println("Reading matrix M")
   A=openMat("1ststageM.dmp")
+  # show structure
   spy(A)
   show()
-  
+  # Reading RHS  
   println("Reading RHS")
   rhs=openMat("1ststageRHS.dmp")
-  
+  # Reading solution computed in PIPS  
   println("Reading solution")
   sol=openMat("1ststageSol.dmp")
-  
+  # Solve system in Julia  
   println("Solving system")
   x=\(A,rhs)
   
+  # Compare both solutions  
   println("Solution from file:")
   println(norm(sol))
   println("Computed solution:")
@@ -33,23 +40,20 @@ function firststage()
   println("Condition number: ", cond(A))
 end
 
-function buildMaster()
-  Q=openMat("globalQ00_1.dmp")
-  spy(Q)
-  show()
-  B=openMat("globalB00_1.dmp")
-  spy(B)
-  show()
-  C=openMat("globalC00_1.dmp")
-  spy(B)
-  show()
-end
+# Read 1st stage block of the global matrix
+# This is the lower right matrix in the notes (all '0' entries)
+# Iteration defines which iteration should be read.
 function buildM(iter)
   child=0
   filename="globalKKT" * "$child" * "_" * "$iter" * ".dmp"
   W0=openMat(filename)
   return W0
 end
+
+# This reads Q0, B0, D0 and the diagonals, then assembles 
+# the 1st stage matrix. This should do exactly the same as buildM(),
+# however it doesn't. Use buildM().
+# See the notes for how exactly the assembling is done
 function buildM2(iter)
   # reading in block
  child=0
@@ -148,6 +152,10 @@ function buildM2(iter)
   
   return W
 end
+
+# This Reads the block diagonal W and off diagonal blocks O and returns them. 
+# Each scenario has one of these.
+# Iteration defines which iteration should be read.
 function buildW(child,iter)
   filename="globalWs" * "$child" * "_" * "$iter" * ".dmp"
   W=openMat(filename)
@@ -178,6 +186,9 @@ function buildW(child,iter)
   
   return W,O
 end
+
+# This should do exactly the same as buildW, except that the block diagonal
+# matrices are assmebled by reading Q, B, D and the diagonals.
 function buildW2(child,iter)
   # reading in block
   filename="globalQs" * "$child" * "_" * "$iter" * ".dmp"
@@ -314,9 +325,12 @@ if (size(ARGS,1) < 4)
   println("Not enough arguments.")
   println("Usage: solve.jl [#scenarios] [iteration] [assemble master] [assemble scenarios]")
   exit()
+  scenarios=parse(Int32,ARGS[1])
 end
-scenarios=parse(Int32,ARGS[1])
+
+# Read which iteration
 iter=parse(Int32,ARGS[2])
+# Which method of assmembling. Either buildW, buildW2 or buildM, buildM2.
 massemble=parse(Int32,ARGS[3])
 sassemble=parse(Int32,ARGS[4])
 if (massemble==0)
@@ -342,6 +356,8 @@ if (!issym(W))
 else
   println("W is symmetric")
 end
+
+# Put the matrices at the right spot. See notes for that.
 A=zeros(size(M,1)+scenarios*size(W,1),size(M,2)+scenarios*size(W,2))
 
 A[1+scenarios*size(W,1):size(M,1)+scenarios*size(W,1),1+scenarios*size(W,2):size(M,2)+scenarios*size(W,2)]=M
@@ -366,8 +382,12 @@ if (!issym(A))
   exit()
 end
 # exit()
+
+# Show structure
 spy(A)
 show()
+
+# Read right-hand side and solution from PIPS. Do the same computation PIPS and compare
 RHS=readRHS(iter)
 SOL=readSOL(iter)
 println("A: ", size(A,1), "x", size(A,2))
