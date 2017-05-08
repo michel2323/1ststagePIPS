@@ -325,9 +325,8 @@ if (size(ARGS,1) < 4)
   println("Not enough arguments.")
   println("Usage: solve.jl [#scenarios] [iteration] [assemble master] [assemble scenarios]")
   exit()
-  scenarios=parse(Int32,ARGS[1])
 end
-
+scenarios=parse(Int32,ARGS[1])
 # Read which iteration
 iter=parse(Int32,ARGS[2])
 # Which method of assmembling. Either buildW, buildW2 or buildM, buildM2.
@@ -391,17 +390,32 @@ show()
 RHS=readRHS(iter)
 SOL=readSOL(iter)
 println("A: ", size(A,1), "x", size(A,2))
-println("Condition number: ", cond(A))
+A_cond=cond(A)
+println("Condition number: ", A_cond)
 println("Solving system")
 x=\(A,RHS)
+r_j=A*x-RHS
+r_p=A*SOL-RHS
+println("Residual Julia: ", norm(r_j,Inf))
+println("Residual PIPS: ", norm(r_p,Inf))
+
+ro_j=norm(r_j,Inf)/(norm(A,Inf)*norm(x,Inf))
+ro_p=norm(r_p,Inf)/(norm(A,Inf)*norm(SOL,Inf))
+println("Weighted residual Julia:", ro_j)
+println("Weighed residual PIPS", ro_p)
+
+println("Error bound Julia: ", norm(x-SOL,Inf)/norm(x,Inf), " ", A_cond*ro_j)
+println("Error bound PIPS: ", norm(SOL-x,Inf)/norm(SOL,Inf), " ", A_cond*ro_p)
 
 println("Solution from file:")
-println(norm(SOL))
+println(norm(SOL,Inf))
 println("Computed solution:")
-println(norm(x))
+println(norm(x,Inf))
 println("RHS from file:")
-println(norm(RHS))
+println(norm(RHS,Inf))
 println("Computed RHS:")
-println(norm(A*x))
+println(norm(A*x,Inf))
+
+
 
 
