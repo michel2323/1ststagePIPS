@@ -5,12 +5,17 @@ using PyPlot
 # Format is m, n integers setting the sizeof
 # and m*n entries
 function openMat(filename)
-  fp=open(filename)
-  m=read(fp, Int32)
-  n=read(fp, Int32)
-  A=read(fp, Float64, m, n)
-  close(fp)
-  println("Reading matrix from ", filename, " ", m, "x", n)
+  if (isfile("filename"))
+    fp=open(filename)
+    m=read(fp, Int32)
+    n=read(fp, Int32)
+    A=read(fp, Float64, m, n)
+    close(fp)
+    println("Reading matrix from ", filename, " ", m, "x", n)
+  else
+    println("Reading empty matrix from ", filename)
+    A=Array{Float64}(0,2)
+  end
   return A
 end
 
@@ -19,8 +24,8 @@ function firststage()
   println("Reading matrix M")
   A=openMat("1ststageM.dmp")
   # show structure
-  spy(A)
-  show()
+  #spy(A)
+  #show()
   # Reading RHS  
   println("Reading RHS")
   rhs=openMat("1ststageRHS.dmp")
@@ -37,7 +42,7 @@ function firststage()
   println("Computed solution:")
   println(norm(x))
   
-  println("Condition number: ", cond(A))
+  println("Condition number: ", cond(A,Inf))
 end
 
 # Read 1st stage block of the global matrix
@@ -383,14 +388,14 @@ end
 # exit()
 
 # Show structure
-spy(A)
-show()
+# spy(A)
+# show()
 
 # Read right-hand side and solution from PIPS. Do the same computation PIPS and compare
 RHS=readRHS(iter)
 SOL=readSOL(iter)
 println("A: ", size(A,1), "x", size(A,2))
-A_cond=cond(A)
+A_cond=cond(A,Inf)
 println("Condition number: ", A_cond)
 println("Solving system")
 x=\(A,RHS)
@@ -401,20 +406,34 @@ println("Residual PIPS: ", norm(r_p,Inf))
 
 ro_j=norm(r_j,Inf)/(norm(A,Inf)*norm(x,Inf))
 ro_p=norm(r_p,Inf)/(norm(A,Inf)*norm(SOL,Inf))
-println("Weighted residual Julia:", ro_j)
-println("Weighed residual PIPS", ro_p)
+println("Weighted residual Julia: ", ro_j)
+println("Weighed residual PIPS: ", ro_p)
 
-println("Error bound Julia: ", norm(x-SOL,Inf)/norm(x,Inf), " ", A_cond*ro_j)
-println("Error bound PIPS: ", norm(SOL-x,Inf)/norm(SOL,Inf), " ", A_cond*ro_p)
+n0=norm(SOL,Inf)
+n1=norm(x-SOL,Inf)
+n2=norm(x,Inf)
+println("Cosmin term 3: ", n0, " ", n1, " ", n2)
+norminf=n1/(1+n2)
+println("Cosmin term 1: ", norminf)
+# println("Cosmin term 1: ", norm(x-SOL,Inf))
+n0=norm(SOL,2)
+n1=norm(x-SOL,2)
+n2=norm(x,2)
+norm2=n1/(1+n2)
+println("Cosmin term 4: ", n0, " ", n1, " ", n2)
+println("Cosmin term 2: ", norm2)
+# println("Cosmin term 2: ", norm(x-SOL,2))
 
-println("Solution from file:")
-println(norm(SOL,Inf))
-println("Computed solution:")
-println(norm(x,Inf))
-println("RHS from file:")
-println(norm(RHS,Inf))
-println("Computed RHS:")
-println(norm(A*x,Inf))
+println("Error bound Julia: ", norm(x-SOL,2)/norm(x,2), " ", A_cond*ro_j)
+println("Error bound PIPS: ", norm(SOL-x,2)/norm(SOL,2), " ", A_cond*ro_p)
+
+# println("Solution from file: ", norm(SOL,Inf))
+println("Solution from file: ", norm(SOL,2))
+# println("Computed solution: ", norm(x,Inf))
+println("Computed solution: ", norm(x,2))
+println("RHS from file: ", norm(RHS,Inf))
+println("Computed RHS: ", norm(A*x,Inf))
+println("Diff RHS: ", norm(RHS-A*x,Inf))
 
 
 
