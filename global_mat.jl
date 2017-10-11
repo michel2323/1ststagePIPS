@@ -33,7 +33,7 @@ end
 # the 1st stage matrix. This should do exactly the same as buildM(),
 # however it doesn't. Use buildM().
 # See the notes for how exactly the assembling is done
-function buildM2(iter)
+function buildSelfAssembleM(iter)
   # reading in block
  child=0
   filename="globalQ0" * "$child" * "_" * "$iter" * ".dmp"
@@ -168,7 +168,7 @@ end
 
 # This should do exactly the same as buildW, except that the block diagonal
 # matrices are assmebled by reading Q, B, D and the diagonals.
-function buildW2(child,iter)
+function buildSelfAssembleW(child,iter)
   # reading in block
   filename="globalQs" * "$child" * "_" * "$iter" * ".dmp"
   Q=openMat(filename)
@@ -308,13 +308,13 @@ end
 scenarios=parse(Int32,ARGS[1])
 # Read which iteration
 iter=parse(Int32,ARGS[2])
-# Which method of assmembling. Either buildW, buildW2 or buildM, buildM2.
+# Which method of assembling. Either buildW, buildW2 or buildM, buildM2.
 massemble=parse(Int32,ARGS[3])
 sassemble=parse(Int32,ARGS[4])
 if (massemble==0)
   M=buildM(iter)
 else
-  M=buildM2(iter)
+  M=buildSelfAssembleM(iter)
 end
 if (!issym(M))
   println("M is not symmetric")
@@ -326,7 +326,7 @@ end
 if (sassemble==0)
   W,O=buildW(0,iter)
 else
-  W,O=buildW2(0,iter)
+  W,O=buildSelfAssembleW(0,iter)
 end
 if (!issym(W))
   println("W is not symmetric")
@@ -349,7 +349,13 @@ if (!issym(A))
 end
 
 for i=1:scenarios-1
-  W,O=buildW(1,iter)
+    if (sassemble==0)
+      W,O=buildW(i,iter)
+    else
+      W,O=buildSelfAssembleW(i,iter)
+    end
+  # W,O=buildW(2,iter)
+  println(i)
   A[1+i*size(W,1):(i+1)*size(W,1),1+i*size(W,2):(i+1)*size(W,2)]=W
   A[1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1),1+i*size(O,2):(i+1)*size(O,2)]=O
   A[1+i*size(O,2):(i+1)*size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
@@ -362,8 +368,8 @@ end
 # exit()
 
 # Show structure
-# spy(A)
-# show()
+ # spy(A)
+ # show()
 
 # Read right-hand side and solution from PIPS. Do the same computation PIPS and compare
 RHS=readRHS(iter)
