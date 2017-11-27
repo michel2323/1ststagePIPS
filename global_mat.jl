@@ -1,5 +1,15 @@
 using PyPlot
 
+# declare triplet type for output to file
+type triplet
+    i::Int64
+    j::Int64
+    v::Float64
+end
+
+function symmetry(A)
+    issym(A)
+end
 
 # Read dumped matrix
 # Format is m, n integers setting the sizeof
@@ -298,11 +308,12 @@ function readSOL(iter)
   return SOL=openMat(filename)
 end
 
+function main_()
 ioff()
 iter=1
-if (size(ARGS,1) < 4)
+if (size(ARGS,1) < 5)
   println("Not enough arguments.")
-  println("Usage: solve.jl [#scenarios] [iteration] [assemble master] [assemble scenarios]")
+  println("Usage: solve.jl [#scenarios] [iteration] [assemble master] [assemble scenarios] [dump triplet format file]")
   exit()
 end
 scenarios=parse(Int32,ARGS[1])
@@ -311,12 +322,13 @@ iter=parse(Int32,ARGS[2])
 # Which method of assembling. Either buildW, buildW2 or buildM, buildM2.
 massemble=parse(Int32,ARGS[3])
 sassemble=parse(Int32,ARGS[4])
+dump_triplet=parse(Int32,ARGS[5])
 if (massemble==0)
   M=buildM(iter)
 else
   M=buildSelfAssembleM(iter)
 end
-if (!issym(M))
+if (!symmetry(M))
   println("M is not symmetric")
   exit()
 else
@@ -328,40 +340,153 @@ if (sassemble==0)
 else
   W,O=buildSelfAssembleW(0,iter)
 end
-if (!issym(W))
+if (!symmetry(W))
   println("W is not symmetric")
   exit()
 else
   println("W is symmetric")
 end
-
-# Put the matrices at the right spot. See notes for that.
-A=zeros(size(M,1)+scenarios*size(W,1),size(M,2)+scenarios*size(W,2))
-
-A[1+scenarios*size(W,1):size(M,1)+scenarios*size(W,1),1+scenarios*size(W,2):size(M,2)+scenarios*size(W,2)]=M
-A[1:size(W,1),1:size(W,2)]=W
-A[1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1),1:size(O,2)]=O
-A[1:size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
-
-if (!issym(A))
-  println("A is not symmetric 1")
-  exit()
+#declare list to store triplets
+list=triplet[]
+    
+# build triplet list for output to file
+j_=0
+i_=0
+if dump_triplet==1
+    # master problem
+    i_=1
+    for i in 1+scenarios*size(W,1):size(M,1)+scenarios*size(W,1)
+        j_=1
+        for j in 1+scenarios*size(W,2):size(M,2)+scenarios*size(W,2)
+            tmp=triplet(i,j,M[i_,j_])
+            if tmp.v!=0.0
+                push!(list,tmp)
+            end
+            j_=j_+1
+        end
+        i_=i_+1
+    end
+    i_=1
+    for i in 1:size(W,1)
+        j_=1
+        for j in 1:size(W,2)
+            tmp=triplet(i,j,W[i_,j_])
+            if tmp.v!=0.0
+                push!(list,tmp)
+            end
+            j_=j_+1
+        end
+        i_=i_+1
+    end
+    i_=1
+    for i in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
+        j_=1
+        for j in 1:size(O,2)
+            tmp=triplet(i,j,O[i_,j_])
+            if tmp.v!=0.0
+                push!(list,tmp)
+            end
+            j_=j_+1
+        end
+        i_=i_+1
+    end
+    Ot=transpose(O)
+    i_=1
+    for i in 1:size(O,2)
+        j_=1
+        for j in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
+            tmp=triplet(i,j,Ot[i_,j_])
+            if tmp.v!=0.0
+                push!(list,tmp)
+            end
+            j_=j_+1
+        end
+        i_=i_+1
+    end
+else
+    # Put the matrices at the right spot. See notes for that.
+    A=zeros(size(M,1)+scenarios*size(W,1),size(M,2)+scenarios*size(W,2))
+    
+    A[1+scenarios*size(W,1):size(M,1)+scenarios*size(W,1),1+scenarios*size(W,2):size(M,2)+scenarios*size(W,2)]=M
+    A[1:size(W,1),1:size(W,2)]=W
+    A[1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1),1:size(O,2)]=O
+    A[1:size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
 end
 
-for i=1:scenarios-1
+if dump_triplet!=1
+    if (!symmetry(A))
+        println("A is not symmetric 1")
+        exit()
+    end
+end
+
+for s=1:scenarios-1
     if (sassemble==0)
-      W,O=buildW(i,iter)
+      W,O=buildW(s,iter)
     else
-      W,O=buildSelfAssembleW(i,iter)
+      W,O=buildSelfAssembleW(s,iter)
     end
   # W,O=buildW(2,iter)
-  println(i)
-  A[1+i*size(W,1):(i+1)*size(W,1),1+i*size(W,2):(i+1)*size(W,2)]=W
-  A[1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1),1+i*size(O,2):(i+1)*size(O,2)]=O
-  A[1+i*size(O,2):(i+1)*size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
+  println(s)
+  
+  if dump_triplet==1
+      i_=1
+      for i2 in 1+s*size(W,1):(s+1)*size(W,1)
+          j_=1
+          for j in 1+s*size(W,2):(s+1)*size(W,2)
+              tmp=triplet(i2,j,W[i_,j_])
+              if tmp.v!=0.0
+                  push!(list,tmp)
+              end
+              j_=j_+1
+          end
+          i_=i_+1
+      end
+      i_=1
+      for i2 in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
+          j_=1
+          for j in 1+s*size(O,2):(s+1)*size(O,2)
+              tmp=triplet(i2,j,O[i_,j_])
+              if tmp.v!=0.0
+                  push!(list,tmp)
+              end
+              j_=j_+1
+          end
+          i_=i_+1
+      end
+      Ot=transpose(O)
+      i_=1
+      for i2 in 1+s*size(O,2):(s+1)*size(O,2)
+          j_=1
+          for j in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
+              tmp=triplet(i2,j,Ot[i_,j_])
+              if tmp.v!=0.0
+                  push!(list,tmp)
+              end
+              j_=j_+1
+          end
+          i_=i_+1
+      end
+  else
+      A[1+s*size(W,1):(s+1)*size(W,1),1+s*size(W,2):(s+1)*size(W,2)]=W
+      A[1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1),1+s*size(O,2):(s+1)*size(O,2)]=O
+      A[1+s*size(O,2):(s+1)*size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
+  end
+end
+println("Size: ", size(list))
+if dump_triplet!=0 
+    f = open("globalmat.mtx", "w");
+    for ln in list
+        n1=ln.i
+        n2=ln.j
+        n3=ln.v
+        write(f,"$n1 $n2 $n3\n")
+    end
+    close(f)
+    exit(1)
 end
 # A[10:10]=10
-if (!issym(A))
+if (!symmetry(A))
   println("A is not symmetric 2")
   exit()
 end
@@ -414,6 +539,8 @@ println("Computed solution: ", norm(x,2))
 println("RHS from file: ", norm(RHS,Inf))
 println("Computed RHS: ", norm(A*x,Inf))
 println("Diff RHS: ", norm(RHS-A*x,Inf))
+end
+main_()
 
 
 
