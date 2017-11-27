@@ -346,8 +346,10 @@ if (!symmetry(W))
 else
   println("W is symmetric")
 end
-#declare list to store triplets
-list=triplet[]
+#declare list to store triplets for global matrix, rhs and solution
+globalmat=triplet[]
+globalrhs=triplet[]
+globalsol=triplet[]
     
 # build triplet list for output to file
 j_=0
@@ -358,9 +360,8 @@ if dump_triplet==1
     for i in 1+scenarios*size(W,1):size(M,1)+scenarios*size(W,1)
         j_=1
         for j in 1+scenarios*size(W,2):size(M,2)+scenarios*size(W,2)
-            tmp=triplet(i,j,M[i_,j_])
-            if tmp.v!=0.0
-                push!(list,tmp)
+            if M[i_,j_]!=0.0
+                push!(globalmat,triplet(i,j,M[i_,j_]))
             end
             j_=j_+1
         end
@@ -370,9 +371,8 @@ if dump_triplet==1
     for i in 1:size(W,1)
         j_=1
         for j in 1:size(W,2)
-            tmp=triplet(i,j,W[i_,j_])
-            if tmp.v!=0.0
-                push!(list,tmp)
+            if W[i_,j_]!=0.0
+                push!(globalmat,triplet(i,j,W[i_,j_]))
             end
             j_=j_+1
         end
@@ -382,9 +382,8 @@ if dump_triplet==1
     for i in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
         j_=1
         for j in 1:size(O,2)
-            tmp=triplet(i,j,O[i_,j_])
-            if tmp.v!=0.0
-                push!(list,tmp)
+            if O[i_,j_]!=0.0
+                push!(globalmat,triplet(i,j,O[i_,j_]))
             end
             j_=j_+1
         end
@@ -395,9 +394,8 @@ if dump_triplet==1
     for i in 1:size(O,2)
         j_=1
         for j in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
-            tmp=triplet(i,j,Ot[i_,j_])
-            if tmp.v!=0.0
-                push!(list,tmp)
+            if Ot[i_,j_]!=0.0
+                push!(globalmat,triplet(i,j,Ot[i_,j_]))
             end
             j_=j_+1
         end
@@ -427,16 +425,15 @@ for s=1:scenarios-1
       W,O=buildSelfAssembleW(s,iter)
     end
   # W,O=buildW(2,iter)
-  println(s)
+  println("Reading scenario ", s)
   
   if dump_triplet==1
       i_=1
       for i2 in 1+s*size(W,1):(s+1)*size(W,1)
           j_=1
           for j in 1+s*size(W,2):(s+1)*size(W,2)
-              tmp=triplet(i2,j,W[i_,j_])
-              if tmp.v!=0.0
-                  push!(list,tmp)
+              if W[i_,j_]!=0.0
+                  push!(globalmat,triplet(i2,j,W[i_,j_]))
               end
               j_=j_+1
           end
@@ -446,9 +443,8 @@ for s=1:scenarios-1
       for i2 in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
           j_=1
           for j in 1+s*size(O,2):(s+1)*size(O,2)
-              tmp=triplet(i2,j,O[i_,j_])
-              if tmp.v!=0.0
-                  push!(list,tmp)
+              if O[i_,j_]!=0.0
+                  push!(globalmat,triplet(i2,j,O[i_,j_]))
               end
               j_=j_+1
           end
@@ -459,9 +455,8 @@ for s=1:scenarios-1
       for i2 in 1+s*size(O,2):(s+1)*size(O,2)
           j_=1
           for j in 1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)
-              tmp=triplet(i2,j,Ot[i_,j_])
-              if tmp.v!=0.0
-                  push!(list,tmp)
+              if Ot[i_,j_]!=0.0
+                  push!(globalmat,triplet(i2,j,Ot[i_,j_]))
               end
               j_=j_+1
           end
@@ -473,10 +468,37 @@ for s=1:scenarios-1
       A[1+s*size(O,2):(s+1)*size(O,2),1+scenarios*size(W,1):scenarios*size(W,1)+size(O,1)]=transpose(O)
   end
 end
-println("Size: ", size(list))
+println("Size: ", size(globalmat))
+# Read right-hand side and solution from PIPS. Do the same computation PIPS and compare
+RHS=readRHS(iter)
+SOL=readSOL(iter)
 if dump_triplet!=0 
+    println("Size RHS: ", size(RHS))
+    println("Size SOL: ", size(SOL))
+    for i in 1:size(RHS,1)
+        push!(globalrhs, triplet(i,1,RHS[i,1]))
+    end
+    for i in 1:size(SOL,1)
+        push!(globalsol, triplet(i,1,SOL[i,1]))
+    end
     f = open("globalmat.mtx", "w");
-    for ln in list
+    for ln in globalmat
+        n1=ln.i
+        n2=ln.j
+        n3=ln.v
+        write(f,"$n1 $n2 $n3\n")
+    end
+    close(f)
+    f = open("globalrhs.mtx", "w");
+    for ln in globalrhs
+        n1=ln.i
+        n2=ln.j
+        n3=ln.v
+        write(f,"$n1 $n2 $n3\n")
+    end
+    close(f)
+    f = open("globalsol.mtx", "w");
+    for ln in globalsol
         n1=ln.i
         n2=ln.j
         n3=ln.v
@@ -496,9 +518,6 @@ end
  # spy(A)
  # show()
 
-# Read right-hand side and solution from PIPS. Do the same computation PIPS and compare
-RHS=readRHS(iter)
-SOL=readSOL(iter)
 println("A: ", size(A,1), "x", size(A,2))
 A_cond=cond(A,Inf)
 println("Condition number: ", A_cond)
