@@ -1,5 +1,5 @@
 using PyPlot
-#using MUMPS
+using MUMPS
 
 
 # Read dumped matrix
@@ -25,8 +25,8 @@ function firststage()
   println("Reading matrix M")
   A=openMat("1ststageM.dmp")
   # show structure
-  #spy(A)
-  #show()
+  # spy(A,precision=0)
+  # show()
   # Reading RHS  
   println("Reading RHS")
   rhs=openMat("1ststageRHS.dmp")
@@ -35,9 +35,16 @@ function firststage()
   sol=openMat("1ststageSol.dmp")
   # Solve system in Julia  
   println("Solving system")
+  nz = 0
+  for i in A
+    if i != 0 
+      nz = nz + 1
+    end
+  end
   println("Non zeros: ", countnz(A))
-  # x=solveMUMPS(sparse(A),rhs,1)
-  x=\(A,rhs)
+  println("nz: ", nz)
+  x=solveMUMPS(sparse(A),rhs,1)
+  #x=\(A,rhs)
   
   # Compare both solutions  
   println("Solution from file:")
